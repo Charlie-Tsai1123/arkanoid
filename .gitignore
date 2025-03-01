@@ -13,6 +13,7 @@ ml_play*.py
 ml/*
 !ml_play_template.py
 !ml_play_manual.py
+!ml_play_automatic.py
 cmd/
 .idea/
 # Byte-compiled / optimized / DLL files
