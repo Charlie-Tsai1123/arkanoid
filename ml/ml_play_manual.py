@@ -1,13 +1,10 @@
-"""
-The template of the main script of the machine learning process
-"""
 import pygame
 import pickle
 import os
 from datetime import datetime
 
 class MLPlay:
-    def __init__(self,ai_name, *args, **kwargs):
+    def __init__(self, ai_name, *args, **kwargs):
         """
         Constructor
         """
@@ -16,6 +13,7 @@ class MLPlay:
         self.game_status = None  # store the status of the game
         self.movement = "NONE"  # store movement of the platform
         self.data = []  # store game data
+        self.prev_bricks = []  # store previous bricks for detecting disappeared bricks
 
     def update(self, scene_info, keyboard=None, *args, **kwargs):
         """
@@ -23,8 +21,9 @@ class MLPlay:
         """
         ball_x, ball_y = scene_info["ball"]
         platform_x = scene_info['platform'][0]
+        current_bricks = scene_info["bricks"]  # The current brick state
 
-        # Make the caller to invoke `reset()` for the next round.
+        # Make the caller invoke `reset()` for the next round.
         if keyboard is None:
             keyboard = []
         if (scene_info["status"] == "GAME_OVER" or scene_info["status"] == "GAME_PASS"):
@@ -34,7 +33,7 @@ class MLPlay:
         # Game Serve ball
         if not scene_info["ball_served"]:
             self.prev_ball_position = (ball_x, ball_y)
-            # self.prev_bricks = current_bricks  # 初始化磚塊狀態
+            self.prev_bricks = current_bricks  # Initialize brick state
             return "SERVE_TO_LEFT"
         
         # Calculate ball movement
@@ -54,12 +53,22 @@ class MLPlay:
         else:
             ball_direction = 4  # No movement
 
-        # if pygame.K_q in keyboard:
-        #     command = "SERVE_TO_LEFT"
-        #     self.ball_served = True
-        # elif pygame.K_e in keyboard:
-        #     command = "SERVE_TO_RIGHT"
-        #     self.ball_served = True
+        # Detect collision with brick
+        collision_with_brick = 0  # Flag for brick collision (0: No collision, 1: Collision)
+        disappeared_brick = (-1, -1)  # Default value if no brick disappears
+
+        # Detect disappeared bricks
+        if self.prev_bricks:
+            for brick in self.prev_bricks:
+                if brick not in current_bricks:  # Brick was in previous state but not in current state → hit
+                    disappeared_brick = brick
+                    collision_with_brick = 1  # Collision with a brick
+                    break  # Only record the first disappeared brick
+
+        # Update previous bricks for next frame
+        self.prev_bricks = current_bricks
+
+        # Platform control logic
         if pygame.K_LEFT in keyboard or pygame.K_a in keyboard:
             command = "MOVE_LEFT"
         elif pygame.K_RIGHT in keyboard or pygame.K_d in keyboard:
@@ -67,7 +76,7 @@ class MLPlay:
         else:
             command = "NONE"
 
-        # change command_value
+        # Change command value to numeric
         if command == "MOVE_RIGHT":
             command_value = 1
         elif command == "MOVE_LEFT":
@@ -75,7 +84,7 @@ class MLPlay:
         else:
             command_value = 0
 
-        # store data
+        # Store data with collision_with_brick
         data_entry = {
             "command": command_value,
             "ball_platform_distance": ball_x - platform_x,
@@ -84,9 +93,8 @@ class MLPlay:
             "platform_x": platform_x,
             "ball_direction": ball_direction,
             "ball_dx": dx,
-            "ball_dy": dy
-            # "disappeared_x": disappeared_brick[0],
-            # "disappeared_y": disappeared_brick[1]
+            "ball_dy": dy,
+            #"collision_with_brick": collision_with_brick  # Numeric representation of brick collision
         }
         self.data.append(data_entry)
 

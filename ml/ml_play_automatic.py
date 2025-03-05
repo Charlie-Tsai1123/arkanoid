@@ -57,7 +57,7 @@ class MLPlay:
                 predict_platform_x = -predict_platform_x
             elif predict_platform_x > 200:
                 predict_platform_x = 400 - predict_platform_x
-
+        
         if platform_x + 20 < predict_platform_x - 2:
             command = "MOVE_RIGHT"
         elif platform_x + 20 > predict_platform_x + 2:
@@ -67,10 +67,12 @@ class MLPlay:
 
         # Detect disappeared bricks
         disappeared_brick = (-1, -1)  # 預設為 (-1, -1) 代表沒有磚塊消失
+        collision_with_brick = 0  # Flag for brick collision (0: No collision, 1: Collision)
         if self.prev_bricks:
             for brick in self.prev_bricks:
                 if brick not in current_bricks:  # 這個磚塊在上一幀有，這一幀沒有 → 被擊中消失
                     disappeared_brick = brick
+                    collision_with_brick = 1  # Ball collided with a brick
                     break  # 只記錄第一個消失的磚塊，KNN 會比較好學習
 
         # Update previous bricks for next frame
@@ -84,7 +86,7 @@ class MLPlay:
         else:
             command_value = 0
 
-        # store data
+        # store data with numeric collision representation
         data_entry = {
             "command": command_value,
             "ball_platform_distance": ball_x - platform_x,
@@ -93,9 +95,8 @@ class MLPlay:
             "platform_x": platform_x,
             "ball_direction": ball_direction,
             "ball_dx": dx,
-            "ball_dy": dy
-            # "disappeared_x": disappeared_brick[0],
-            # "disappeared_y": disappeared_brick[1]
+            "ball_dy": dy,
+            "collision_with_brick": collision_with_brick  # Numeric representation of collision
         }
         self.data.append(data_entry)
 
